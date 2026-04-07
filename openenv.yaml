@@ -1,0 +1,31 @@
+# OpenEnv Environment Specification
+name: "datascan-crm-cleaner-v1"
+version: "1.2.0"
+description: "A professional-grade CRM cleaning environment using Regex-based dynamic reward validation (Supports SQLite, MariaDB, and PostgreSQL)."
+author: "Aditya"
+
+# Entry point for the FastAPI server
+entry_points:
+  main: "main:app"
+
+# Definition of evaluation tasks for the AI Agent
+tasks:
+  - id: "task_easy_email"
+    difficulty: "easy"
+    description: "Identify and fix malformed email addresses (e.g., converting [at] to @) using regex-verified rewards."
+  
+  - id: "task_medium_phone"
+    difficulty: "medium"
+    description: "Multi-field cleaning: Format phone numbers to E.164 and fix improper name casing."
+  
+  - id: "task_hard_duplicates"
+    difficulty: "hard"
+    description: "Advanced logic: Identify, merge, or delete duplicate customer records while preserving data integrity."
+
+# Environment metadata
+metadata:
+  runtime: "python3.10"
+  framework: "fastapi"
+  database_support: ["sqlite", "mysql", "mariadb", "postgresql"]
+  validation_type: "dynamic_regex"
+  port: 7860
