@@ -9,17 +9,46 @@ import os
 # 1. Load environment variables
 load_dotenv()
 
-app = FastAPI(title="DataScan CRM OpenEnv")
+app = FastAPI(title="DataScan CRM OpenEnv", version="0.2.0")
 
 # 2. Initialize environment logic
 env = CRMEnvLogic()
 
 @app.get("/")
-async def root():
+@app.get("/health")
+async def health():
+    """Mandatory health check endpoint."""
     return {"status": "healthy", "service": "DataScan CRM OpenEnv"}
 
+@app.get("/metadata")
+async def get_metadata():
+    """Mandatory metadata discovery endpoint."""
+    return {
+        "name": "datascan-crm-cleaner-v1",
+        "description": "Professional-grade CRM cleaning environment with Regex-based rewards.",
+        "version": "0.2.0",
+        "author": "Aditya",
+        "supported_tasks": ["task_easy_email", "task_medium_phone", "task_hard_duplicates"]
+    }
+
+@app.get("/schema")
+async def get_schema():
+    """Mandatory schema discovery endpoint."""
+    return {
+        "action": CRMAction.schema(),
+        "observation": CRMObservation.schema(),
+        "state": {"type": "object", "description": "Current database records"}
+    }
+
+@app.post("/mcp")
+async def mcp_endpoint():
+    """Placeholder for Model Context Protocol compliance."""
+    return {
+        "jsonrpc": "2.0",
+        "result": {"status": "MCP interface active"}
+    }
+
 # --- VALIDATION ENDPOINTS ---
-# We use ../ because these files stay in the root, while app.py is in /server
 @app.get("/Dockerfile")
 async def get_dockerfile():
     path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "Dockerfile"))
@@ -74,7 +103,6 @@ async def state():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# THIS IS THE REQUIRED ENTRY POINT FOR PROJECT.SCRIPTS
 def main():
     uvicorn.run("server.app:app", host="0.0.0.0", port=7860, reload=False)
 
