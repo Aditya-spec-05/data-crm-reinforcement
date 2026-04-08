@@ -2,7 +2,7 @@ import os
 import re # Added for Regex
 from sqlalchemy import create_engine, text
 from typing import Tuple, Dict, Any
-from models import CRMAction, CRMObservation
+from .models import CRMAction, CRMObservation
 
 class CRMEnvLogic:
     def __init__(self):
