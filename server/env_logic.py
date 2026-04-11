@@ -38,7 +38,7 @@ class CRMEnvLogic:
                     {"id": 1, "name": 'Aditya', "email": 'aditya@gmail.com', "phone": '12345', "status": 'dirty'},
                     {"id": 2, "name": 'John Doe', "email": 'john.doe@gmail.com', "phone": '9876543210', "status": 'dirty'}
                 ]
-            elif task_id == "task_hard_crm":
+            elif task_id == "task_hard_duplicates":
                 data = [
                     {"id": 1, "name": 'aditya', "email": 'aditya[at]gmail.com', "phone": '12345', "status": 'dirty'},
                     {"id": 2, "name": 'john', "email": 'john@gmail.com', "phone": '+1234567', "status": 'dirty'}
