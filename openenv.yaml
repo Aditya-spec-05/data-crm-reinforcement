@@ -20,7 +20,7 @@ tasks:
     difficulty: "medium"
     description: "Multi-field cleaning: Format phone numbers to E.164 (starting with +) and fix improper name casing."
   
-  - id: "task_hard_crm" # Renamed to match the key used in your env_logic.py reset logic
+  - id: "task_hard_duplicates" # Renamed to match the key used in your env_logic.py reset logic
     name: "Full CRM Cleanup"
     difficulty: "hard"
     description: "Advanced logic: Identify, merge, or delete duplicate customer records while preserving data integrity."
