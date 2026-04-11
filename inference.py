@@ -5,23 +5,25 @@ import json
 from typing import List, Optional
 from openai import OpenAI
 import httpx
-from dotenv import load_dotenv  # 1. Add this import
+from dotenv import load_dotenv
 
-load_dotenv()  # 2. Add this line before anything else
+load_dotenv()
+
 # --- CONFIGURATION ---
-# These pull from your .env file or Hugging Face Secrets
-API_URL = os.getenv("API_URL", "https://adityaselvam-data-crm-cleaner.hf.space")
-API_KEY = os.getenv("OPENROUTER_API_KEY") or os.getenv("HF_TOKEN")
+# 1. MANDATORY: The validator injects API_BASE_URL and API_KEY. 
+# We MUST prioritize these to pass the proxy check.
 API_BASE_URL = os.getenv("API_BASE_URL", "https://openrouter.ai/api/v1")
+API_KEY = os.getenv("API_KEY") or os.getenv("OPENROUTER_API_KEY") or os.getenv("HF_TOKEN")
+
+# API_URL is your Hugging Face space URL
+API_URL = os.getenv("API_URL", "https://adityaselvam-data-crm-cleaner.hf.space")
 MODEL_NAME = os.getenv("MODEL_NAME", "meta-llama/llama-3.2-3b-instruct:free")
 
-# Task metadata (Must match openenv.yaml)
 TASK_NAME = os.getenv("TASK_NAME", "task_easy_email")
 BENCHMARK = os.getenv("BENCHMARK", "datascan_crm_v1")
-MAX_STEPS =  30
+MAX_STEPS = 30
 SUCCESS_THRESHOLD = 0.5
 
-# Enhanced prompt including the DELETE_DUPLICATE action
 SYSTEM_PROMPT = textwrap.dedent(
     """
     You are a Data Quality Agent. Your goal is to clean a CRM database.
@@ -41,7 +43,6 @@ def log_start(task: str, env: str, model: str):
 
 def log_step(step: int, action: str, reward: float, done: bool, error: Optional[str]):
     error_val = error if error else "null"
-    # Ensure action string is compact for logging
     clean_action = action.replace("\n", "").replace(" ", "")
     print(f"[STEP] step={step} action={clean_action} reward={reward:.2f} done={str(done).lower()} error={error_val}", flush=True)
 
@@ -50,7 +51,7 @@ def log_end(success: bool, steps: int, score: float, rewards: List[float]):
     print(f"[END] success={str(success).lower()} steps={steps} score={score:.3f} rewards={rewards_str}", flush=True)
 
 async def run_agent():
-    # OpenAI client configured for OpenRouter
+    # Initialize OpenAI client using the proxy URL and Key
     client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
     
     async with httpx.AsyncClient(timeout=45.0) as http_client:
@@ -58,15 +59,14 @@ async def run_agent():
         log_start(TASK_NAME, BENCHMARK, MODEL_NAME)
         
         try:
-            # 1. RESET
             resp = await http_client.post(f"{API_URL}/reset?task_id={TASK_NAME}")
             resp.raise_for_status()
             observation = resp.json()["observation"]
             
             for step in range(1, MAX_STEPS + 1):
-                # 2. INFERENCE
                 user_msg = f"Current State: {observation}. What is your next cleaning action?"
                 
+                # The call MUST go through client (OpenAI) to hit the proxy
                 completion = client.chat.completions.create(
                     model=MODEL_NAME,
                     messages=[
@@ -79,7 +79,6 @@ async def run_agent():
                 action_text = completion.choices[0].message.content
                 action_data = json.loads(action_text)
 
-                # 3. STEP
                 step_resp = await http_client.post(f"{API_URL}/step", json=action_data)
                 step_resp.raise_for_status()
                 result = step_resp.json()
@@ -94,14 +93,17 @@ async def run_agent():
                 if done:
                     break
 
-            # 4. FINAL SCORE
             total_reward = sum(history)
-            final_score = min(max(total_reward, 0.0), 1.0)
+            
+            # Phase 2 requires scores strictly between 0 and 1.
+            # We add a tiny epsilon to avoid exactly 0.0 or 1.0
+            final_score = min(max(total_reward, 0.01), 0.99)
+            
             success = final_score >= SUCCESS_THRESHOLD
             log_end(success, len(history), final_score, history)
 
         except Exception as e:
-            log_end(False, len(history), 0.0, history)
+            log_end(False, len(history), 0.01, history)
             print(f"[DEBUG] Error: {e}")
 
 if __name__ == "__main__":
